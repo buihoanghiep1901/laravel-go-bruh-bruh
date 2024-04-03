@@ -13,13 +13,10 @@ class DepartmentSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-        DB::statement("ALTER TABLE `departments` AUTO_INCREMENT = 1");
-        DB::table('departments')->delete();
-       Department::create(['name' => 'SBU1']);
-       Department::create(['name' => 'SBU2']);
-       Department::create(['name' => 'SBU3']);
-       Department::create(['name' => 'SBU4']);
-       Department::create(['name' => 'SBU5']);
+       Department::firstOrCreate(['name' => 'SBU1']);
+       Department::firstOrCreate(['name' => 'SBU2']);
+       Department::firstOrCreate(['name' => 'SBU3']);
+       Department::firstOrCreate(['name' => 'SBU4']);
+       Department::firstOrCreate(['name' => 'SBU5']);
     }
 }

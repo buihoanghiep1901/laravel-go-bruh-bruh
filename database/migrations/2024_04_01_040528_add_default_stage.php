@@ -29,11 +29,6 @@ return new class extends Migration
             }
         }
         DB::table('job_stages')->insert($data);
-
-        $jobApplications = JobApplication::query()->get();
-        foreach ($jobApplications as $jobApplication) {
-            $jobApplication->update(['stage_id' => $jobApplication->job->jobStages->id]);
-        }
     }
 
     /**
@@ -42,7 +37,6 @@ return new class extends Migration
     public function down(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-//        DB::statement("ALTER TABLE `job_stages` AUTO_INCREMENT = 1");
         DB::table('job_stages')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }

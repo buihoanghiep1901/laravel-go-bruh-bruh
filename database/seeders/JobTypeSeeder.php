@@ -13,10 +13,8 @@ class JobTypeSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-        DB::statement("ALTER TABLE `job_types` AUTO_INCREMENT = 1");
-        DB::table('job_types')->delete();
-       JobType::create(['name' => 'IT']);
-       JobType::create(['name' => 'Non IT']);
+
+       JobType::firstOrCreate(['name' => 'IT']);
+       JobType::firstOrCreate(['name' => 'Non IT']);
     }
 }
