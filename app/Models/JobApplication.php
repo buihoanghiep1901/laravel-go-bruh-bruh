@@ -6,6 +6,8 @@ use App\Services\S3Service;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JobApplication extends Model
 {
@@ -14,21 +16,6 @@ class JobApplication extends Model
     public const FOLDER = 'resumes';
     protected $fillable = ['full_name', 'email', 'job_id', 'stage_id'];
     protected $appends = ['resume_url'];
-
-    public function job(): BelongsTo
-    {
-        return $this->belongsTo(Job::class, 'job_id');
-    }
-
-    public function stage()
-    {
-        return $this->belongsTo(JobStage::class, 'stage_id');
-    }
-
-    public function resumes()
-    {
-        return $this->hasMany(JobApplicationResume::class, 'job_application_id');
-    }
 
     public function getResumeUrlAttribute(): false|array
     {
@@ -43,6 +30,46 @@ class JobApplication extends Model
             return $resume_url;
         }
         return  false;
+    }
+
+    public function job(): BelongsTo
+    {
+        return $this->belongsTo(Job::class, 'job_id');
+    }
+
+    public function stage(): BelongsTo
+    {
+        return $this->belongsTo(JobStage::class, 'stage_id');
+    }
+
+    public function resumes(): HasMany
+    {
+        return $this->hasMany(JobApplicationResume::class, 'job_application_id');
+    }
+
+    public function jobApplicationMentions(): HasMany
+    {
+        return $this->hasMany(JobApplicationMention::class, 'job_application_id');
+    }
+
+    public function mentionGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            MentionGroup::class,
+            'job_application_mentions',
+            'job_application_id',
+            'mention_id')
+            ->where('job_application_mentions.type', 'group');
+    }
+
+    public function mentionUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            User::class,
+            'job_application_mentions',
+            'job_application_id',
+            'mention_id')
+            ->where('job_application_mentions.type', 'user');
     }
 
 }
