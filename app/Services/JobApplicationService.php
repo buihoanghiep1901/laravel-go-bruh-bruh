@@ -30,6 +30,8 @@ class JobApplicationService extends BaseService
                 'job:id,title',
                 'stage:id,name',
                 'resumes:id,job_application_id,name',
+                'mentionGroups:id,name',
+                'mentionUsers:id,name',
             ]);
 
             if ($full_name) {

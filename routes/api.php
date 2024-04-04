@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\JobApplicationController;
 use Illuminate\Http\File;
 use Illuminate\Http\Request;
@@ -46,4 +47,10 @@ Route::prefix('job-applications')->group(function () {
 //        Route::get('{id}', [JobApplicationController::class, 'getResume']);
 //        Route::get('/download/{resumeId}', [JobApplicationController::class, 'downloadResume']);
     });
+});
+
+Route::prefix('interview-schedules')->group(function () {
+    Route::get('', [InterviewScheduleController::class, 'getListInterviewSchedule']);
+    Route::get('jobs/{id}', [InterviewScheduleController::class, 'getInterviewScheduleByJobId']);
+    Route::post('', [InterviewScheduleController::class, 'storeInterviewSchedule']);
 });
