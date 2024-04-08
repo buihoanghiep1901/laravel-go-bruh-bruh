@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Http\Requests\JobApplicationRequest;
+use App\Mail\SendMail;
+use App\Models\InterviewSchedule;
 use App\Models\JobApplication;
 use App\Models\JobApplicationResume;
 use App\Models\JobStage;
@@ -11,6 +13,7 @@ use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 
 class JobApplicationService extends BaseService
@@ -19,6 +22,7 @@ class JobApplicationService extends BaseService
     {
         $this->model = new JobApplication();
     }
+
     public function listJobApplications(Request $request): JsonResponse
     {
         try {
@@ -74,13 +78,7 @@ class JobApplicationService extends BaseService
             $jobApplication->full_name = $request->get('full_name');
             $jobApplication->email = $request->get('email');
             $jobApplication->job_id = $request->get('job_id');
-
-            $stage_id = $request->get('stage_id');
-            $stageList = JobStage::query()->where('job_id', $request->get('job_id'))->orderBy('id')->get()->pluck('id')->toArray();
-            if (!in_array($stage_id, $stageList)) {
-                $stage_id = $stageList[0];
-            }
-            $jobApplication->stage_id = $stage_id;
+            $jobApplication->stage_id = $request->get('stage_id');
             $jobApplication->save();
 
 
@@ -107,18 +105,12 @@ class JobApplicationService extends BaseService
     {
         try {
             DB::beginTransaction();
-            $stage_id = $request->get('stage_id');
-            $stageList = JobStage::query()->where('job_id', $request->get('job_id'))->orderBy('id')->get()->pluck('id')->toArray();
-            if (!in_array($stage_id, $stageList)) {
-                $stage_id = $stageList[0];
-            }
-
             $jobApplication = JobApplication::query()->findOrFail($id);
             $jobApplication->update([
                 'full_name' => $request->get('full_name'),
                 'email' => $request->get('email'),
                 'job_id' => $request->get('job_id'),
-                'stage_id' => $stage_id,
+                'stage_id' => $request->get('stage_id'),
             ]);
 
             if ($request->hasFile('resumes')) {
@@ -128,8 +120,6 @@ class JobApplicationService extends BaseService
                     $resumes[] = [
                         'name' => $resume->getClientOriginalName(),
                         'resume' => $s3->uploadFileToS3($resume, JobApplication::FOLDER),
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ];
                 }
                 $jobApplication->resumes()->createMany($resumes);
@@ -147,9 +137,9 @@ class JobApplicationService extends BaseService
         try {
             DB::beginTransaction();
             $jobApplication = JobApplication::query()->findOrFail($id);
-            $resumes=$jobApplication->resumes()->get()->pluck('id');
-            if($resumes){
-                foreach ($resumes as $resume){
+            $resumes = $jobApplication->resumes()->get()->pluck('id');
+            if ($resumes) {
+                foreach ($resumes as $resume) {
                     $this->deleteResume($resume);
                 }
             }
@@ -180,7 +170,7 @@ class JobApplicationService extends BaseService
             $s3->removeFile($jobApplicationResume->resume);
             $jobApplicationResume->delete();
             return $this->responseSuccess($jobApplicationResume, 'success');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->responseError($e->getMessage(), 'deleteResume');
         }
     }
@@ -193,7 +183,7 @@ class JobApplicationService extends BaseService
         try {
             $jobApplicationId = $request->input('job_application_id');
             $resumes = $request->file('resumes');
-            foreach($resumes as $resume) {
+            foreach ($resumes as $resume) {
                 $listJobApplicationResume[] = [
                     'job_application_id' => $jobApplicationId,
                     'name' => $resume->getClientOriginalName(),
@@ -203,9 +193,49 @@ class JobApplicationService extends BaseService
                 ];
             }
 
-            return $this->responseSuccess(DB::table('job_application_resumes')->insert($listJobApplicationResume),'success');
-        } catch (\Exception $e) {
+            return $this->responseSuccess(DB::table('job_application_resumes')->insert($listJobApplicationResume), 'success');
+        } catch (Exception $e) {
             return $this->responseError($e->getMessage(), 'uploadResume');
+        }
+    }
+
+    public function changeStage($id, $request): JsonResponse
+    {
+        try {
+            //update stage id
+            DB::beginTransaction();
+            $jobApplication = JobApplication::query()->findOrFail($id);
+            $jobApplication->update(['stage_id' => $request->get('stage_id')]);
+
+            //check interview
+            if ($request->get('interview')) {
+                $interview = $request->get('interview');
+                $interview['job_application_id'] = $jobApplication->id;
+                InterviewSchedule::create($interview);
+            }
+            DB::commit();
+            //check  email (title, cc, files, template_files, from, to)
+            if ($request->get('send_email')) {
+                $data = $request->email;
+                //check if this stage id have file on email+interview template
+                $stage = JobStage::query()->findOrFail($request->get('stage_id'));
+                $templateFiles = $stage->interviewTemplate?->files ?? $stage->emailTemplate?->files;
+                $temp = [];
+                foreach ($templateFiles as $file) {
+                    if (in_array($file->id, $data['template_files'])) {
+                        $temp[] = $file->url;
+                    }
+                }
+
+                $data['template_files'] = $temp;
+                $data['to'] = $jobApplication->email;
+                Mail::send(new SendMail($data));
+            }
+            return $this->responseSuccess($data ?? $jobApplication, 'success');
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            return $this->responseError($e->getMessage(), 'ChangeStatusJobApplication');
         }
     }
 }

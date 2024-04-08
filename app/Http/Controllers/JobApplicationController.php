@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\changeStageRequest;
 use App\Http\Requests\JobApplicationRequest;
 use App\Services\JobApplicationService;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +51,11 @@ class JobApplicationController extends Controller
     public  function uploadResume(Request $request): JsonResponse
     {
         return $this->service->uploadResume($request);
+    }
+
+    public  function changeStage(changeStageRequest $request,$id): JsonResponse
+    {
+        return $this->service->changeStage($id,$request);
     }
 
 }
