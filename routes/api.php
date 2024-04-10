@@ -5,14 +5,10 @@ use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\InterviewTemplateController;
 use App\Http\Controllers\JobApplicationController;
 use App\Mail\SendMail;
-use App\Models\JobApplication;
 use App\Models\Test;
-use Illuminate\Http\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 
 Route::post('/test/{id}', function (Request $request) {
